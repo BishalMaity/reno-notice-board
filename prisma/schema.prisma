@@ -19,5 +19,5 @@ model Notice {
   publishDate DateTime
   image       String?  // Optional image url (bonus)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
+
