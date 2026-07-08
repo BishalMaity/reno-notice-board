@@ -23,7 +23,9 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Notice not found' });
   }
 
-  if (req.method === 'PUT') {
+  if (req.method === 'GET') {
+    return res.status(200).json(notice);
+  } else if (req.method === 'PUT') {
     try {
       const { title, body, category, priority, publishDate, image } = req.body || {};
 
@@ -90,7 +92,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   } else {
-    res.setHeader('Allow', ['PUT', 'DELETE']);
+    res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
     return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 }
