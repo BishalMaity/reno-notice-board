@@ -1,49 +1,76 @@
+import { useEffect, useRef } from 'react';
+
 export default function DeleteConfirmationModal({ isOpen, onClose, onConfirm, noticeTitle }) {
+  const cancelRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    cancelRef.current?.focus();
+
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Background Overlay */}
-      <div 
-        className="fixed inset-0 bg-gray-900/60 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300"
+    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+      <div
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
+        aria-hidden="true"
       />
 
-      {/* Modal Box */}
-      <div className="relative bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 dark:border-slate-700/60 p-6 overflow-hidden transform transition-all scale-100 duration-300 z-10 animate-in fade-in zoom-in-95">
-        {/* Warning Icon Banner */}
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 mx-auto bg-rose-50 dark:bg-rose-950/30 w-12 h-12 rounded-xl flex items-center justify-center text-rose-600 dark:text-rose-400 sm:mx-0">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </div>
-
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-snug">
-              Delete Notice?
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
-              Are you sure you want to delete <strong className="text-gray-900 dark:text-slate-200 font-bold">"{noticeTitle}"</strong>? This action is permanent and cannot be undone.
-            </p>
-          </div>
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-modal-title"
+        className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-[0_24px_48px_-12px_rgba(30,41,59,0.35)]"
+      >
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-500/15">
+          <svg className="h-5.5 w-5.5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
         </div>
 
-        {/* Modal Buttons */}
-        <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-700 pt-4">
+        <h2 id="delete-modal-title" className="mb-2 text-lg font-bold text-slate-800 dark:text-white">
+          Delete this notice?
+        </h2>
+
+        <p className="mb-6 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+          {noticeTitle ? (
+            <>
+              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                &ldquo;{noticeTitle}&rdquo;
+              </span>{' '}
+              will be permanently removed from the notice board. This can&apos;t be undone.
+            </>
+          ) : (
+            'This notice will be permanently removed from the notice board. This can\u2019t be undone.'
+          )}
+        </p>
+
+        <div className="flex items-center justify-end gap-2">
           <button
-            type="button"
+            ref={cancelRef}
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-sm font-semibold text-gray-700 dark:text-slate-300 transition-colors focus:outline-none"
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
           >
             Cancel
           </button>
           <button
-            type="button"
             onClick={onConfirm}
-            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-sm transition-all focus:outline-none"
+            className="rounded-xl bg-rose-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-rose-200 dark:shadow-none transition-colors hover:bg-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
           >
-            Yes, Delete
+            Delete Notice
           </button>
         </div>
       </div>

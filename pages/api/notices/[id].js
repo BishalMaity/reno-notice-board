@@ -56,6 +56,11 @@ export default async function handler(req, res) {
         const parsedDate = new Date(publishDate);
         if (isNaN(parsedDate.getTime())) {
           errors.publishDate = 'Publish date must be a valid date.';
+        } else {
+          const year = parsedDate.getFullYear();
+          if (year < 1900 || year > 2100) {
+            errors.publishDate = 'Publish date year must be between 1900 and 2100.';
+          }
         }
       }
 

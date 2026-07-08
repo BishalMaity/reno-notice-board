@@ -1,16 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import Navbar from '../components/Navbar';
 import NoticeCard from '../components/NoticeCard';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import Loading from '../components/Loading';
+
+const CATEGORY_FILTERS = [
+  { label: 'All', dot: 'bg-slate-400' },
+  { label: 'General', dot: 'bg-indigo-500' },
+  { label: 'Exam', dot: 'bg-rose-500' },
+  { label: 'Event', dot: 'bg-amber-500' },
+];
 
 export default function Home() {
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('board'); // 'board' or 'grid'
+  const [activeFilter, setActiveFilter] = useState('All');
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -31,15 +43,6 @@ export default function Home() {
     }
   };
 
-  const handleEdit = (notice) => {
-    router.push(`/notice/${notice.id}`);
-  };
-
-  const handleDeleteClick = (notice) => {
-    setSelectedNotice(notice);
-    setModalOpen(true);
-  };
-
   const confirmDelete = async () => {
     if (!selectedNotice) return;
     try {
@@ -53,97 +56,197 @@ export default function Home() {
     }
   };
 
-  const closeDeleteModal = () => {
-    setModalOpen(false);
-    setSelectedNotice(null);
-  };
+  const filteredBySearch = useMemo(() => {
+    if (!searchQuery.trim()) return notices;
+    const q = searchQuery.toLowerCase();
+    return notices.filter(
+      (n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q)
+    );
+  }, [notices, searchQuery]);
+
+  // Grouped columns for board view
+  const columns = useMemo(() => [
+    { id: 'General', label: 'General Info', dot: 'bg-indigo-500', list: filteredBySearch.filter(n => n.category === 'General') },
+    { id: 'Exam', label: 'Exams & Schedules', dot: 'bg-rose-500', list: filteredBySearch.filter(n => n.category === 'Exam') },
+    { id: 'Event', label: 'Events & Activities', dot: 'bg-amber-500', list: filteredBySearch.filter(n => n.category === 'Event') },
+  ], [filteredBySearch]);
+
+  // Grid view filtered list
+  const gridNotices = useMemo(() => {
+    if (activeFilter === 'All') return filteredBySearch;
+    return filteredBySearch.filter(n => n.category === activeFilter);
+  }, [filteredBySearch, activeFilter]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col font-sans text-gray-900 dark:text-slate-100 transition-colors duration-300">
-      <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-              Notice Board
-            </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-              Stay updated with the latest college notices, exams, and event schedules.
-            </p>
+    <div className="min-h-screen px-4 py-2">
+      {/* Workspace Header (styled as a floating rounded top card) */}
+      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl bg-slate-200/20 dark:bg-slate-900/50 p-6 border-1 border-slate-200/50 dark:border-slate-800/50 shadow-[0_0_20px_rgba(0,0,0,0.15)] ">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white">Notice Board</h1>
           </div>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Keep track of examinations, schedules, and active campus events.</p>
+        </div>
+
+        {/* Create Button */}
+        <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/notice/new')}
-            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400 shadow-sm transition-all duration-200 focus:outline-none"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-200 dark:shadow-none transition-all hover:bg-indigo-500 focus:outline-none"
           >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             Create Notice
           </button>
         </div>
+      </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl text-rose-700 dark:text-rose-300 text-sm flex items-center gap-3">
-            <svg className="w-5 h-5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span>{error}</span>
+      {/* Control bar (Search + View Toggles) */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Search */}
+        <div className="relative w-full max-w-xs">
+          <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          </span>
+          <input
+            type="text"
+            placeholder="Search notices..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-4 text-sm font-medium text-slate-600 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+          <button
+            onClick={() => setViewMode('board')}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold transition-all ${viewMode === 'board' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-350'
+              }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>
+            Board
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-350'
+              }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+            Grid
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      {error && (
+        <div className="mb-6 flex items-center gap-2 rounded-xl bg-rose-50 dark:bg-rose-950/20 p-4 text-xs font-medium text-rose-600 dark:text-rose-400">
+          <svg className="h-5 w-5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <Loading type="grid" />
+      ) : notices.length === 0 ? (
+        /* Empty board */
+        <div className="mx-auto mt-16 max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-8 text-center shadow-xs border border-slate-100 dark:border-slate-800">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
+            <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
           </div>
-        )}
-
-        {/* Loading Skeleton */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/60 p-6 flex flex-col space-y-4 animate-pulse">
-                <div className="h-6 bg-gray-200 dark:bg-slate-700 rounded-full w-24"></div>
-                <div className="h-7 bg-gray-200 dark:bg-slate-700 rounded-lg w-3/4"></div>
-                <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded-lg"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded-lg w-5/6"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded-lg w-2/3"></div>
+          <h3 className="text-base font-bold text-slate-800 dark:text-white">No notices published yet</h3>
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Get started by creating a new notice. It will appear here for all users to read.</p>
+          <button
+            onClick={() => router.push('/notice/new')}
+            className="mt-5 inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-100 dark:shadow-none hover:bg-indigo-500 focus:outline-none"
+          >
+            Publish First Notice
+          </button>
+        </div>
+      ) : viewMode === 'board' ? (
+        /* Board/Kanban Column View */
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {columns.map((column) => (
+            <div key={column.id} className="flex flex-col rounded-2xl shadow-[0_0_2px_rgba(0,0,0,0.08)] bg-slate-50 dark:bg-slate-900/40 p-4 border border-slate-100/50 dark:border-slate-800/40 min-h-[500px]">
+              {/* Column Header */}
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${column.dot}`} />
+                  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{column.label}</h3>
                 </div>
-                <div className="h-10 bg-gray-200 dark:bg-slate-700 rounded-xl pt-4 border-t border-gray-100 dark:border-slate-700/60"></div>
+                <span className="rounded-full bg-slate-100 dark:bg-slate-850 px-2 py-0.5 text-2xs font-bold text-slate-500 dark:text-slate-400">
+                  {column.list.length}
+                </span>
               </div>
-            ))}
-          </div>
-        ) : notices.length === 0 ? (
-          /* Empty State */
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/60 py-16 px-4 text-center max-w-xl mx-auto shadow-sm mt-8">
-            <div className="mx-auto w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl flex items-center justify-center mb-6">
-              <svg className="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No notices published yet</h3>
-            <p className="text-gray-500 dark:text-slate-400 text-sm mb-6 max-w-sm mx-auto">
-              Get started by creating a new notice. It will appear here for all users to read.
-            </p>
-            <button
-              onClick={() => router.push('/notice/new')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400 shadow-sm transition-all duration-200 focus:outline-none"
-            >
-              Publish First Notice
-            </button>
-          </div>
-        ) : (
-          /* Cards Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {notices.map((notice) => (
-              <NoticeCard
-                key={notice.id}
-                notice={notice}
-                onEdit={handleEdit}
-                onDelete={handleDeleteClick}
-              />
-            ))}
-          </div>
-        )}
-      </main>
 
+              {/* Notice cards list */}
+              <div className="flex flex-col gap-8 flex-1 overflow-y-auto">
+                {column.list.length === 0 ? (
+                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center text-slate-400 dark:text-slate-600">
+                    <p className="text-2xs font-bold uppercase tracking-wider">No notices</p>
+                  </div>
+                ) : (
+                  column.list.map((notice) => (
+                    <NoticeCard
+                      key={notice.id}
+                      notice={notice}
+                      onEdit={(n) => router.push(`/notice/${n.id}`)}
+                      onDelete={(n) => { setSelectedNotice(n); setModalOpen(true); }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Grid View with Category Filters */
+        <div className="space-y-6">
+          {/* Category filter pills */}
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_FILTERS.map(({ label, dot }) => {
+              const isActive = activeFilter === label;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setActiveFilter(label)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold transition-all shadow-xs border ${isActive
+                    ? 'bg-slate-850 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-sm'
+                    : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-slate-100 dark:border-slate-800'
+                    }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                  {label}
+                  <span className={`text-xs ${isActive ? 'opacity-80' : 'opacity-40'}`}>
+                    {label === 'All' ? filteredBySearch.length : filteredBySearch.filter(n => n.category === label).length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {gridNotices.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-205 dark:border-slate-800 py-16 text-center text-slate-500">
+              No notices match the selected category filter.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {gridNotices.map((notice) => (
+                <NoticeCard
+                  key={notice.id}
+                  notice={notice}
+                  onEdit={(n) => router.push(`/notice/${n.id}`)}
+                  onDelete={(n) => { setSelectedNotice(n); setModalOpen(true); }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Delete modal */}
       <DeleteConfirmationModal
         isOpen={modalOpen}
-        onClose={closeDeleteModal}
+        onClose={() => { setModalOpen(false); setSelectedNotice(null); }}
         onConfirm={confirmDelete}
         noticeTitle={selectedNotice?.title || ''}
       />
