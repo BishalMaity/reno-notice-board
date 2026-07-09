@@ -4,6 +4,7 @@ import axios from 'axios';
 import NoticeCard from '../components/NoticeCard';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import Loading from '../components/Loading';
+import NoticeForm from '../components/NoticeForm';
 
 const CATEGORY_FILTERS = [
   { label: 'All', dot: 'bg-slate-400' },
@@ -22,26 +23,32 @@ export default function Home() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState(null);
+  const [editingNotice, setEditingNotice] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const router = useRouter();
 
   useEffect(() => {
-    fetchNotices();
-  }, []);
-
-  const fetchNotices = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/api/notices');
-      setNotices(response.data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching notices:', err);
-      setError('Failed to fetch notices. Please check your database connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    let active = true;
+    axios.get('/api/notices')
+      .then((response) => {
+        if (active) {
+          setNotices(response.data);
+          setError(null);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching notices:', err);
+        if (active) {
+          setError('Failed to fetch notices. Please check your database connection.');
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [refreshTrigger]);
 
   const confirmDelete = async () => {
     if (!selectedNotice) return;
@@ -189,7 +196,7 @@ export default function Home() {
                     <NoticeCard
                       key={notice.id}
                       notice={notice}
-                      onEdit={(n) => router.push(`/notice/${n.id}`)}
+                      onEdit={(n) => setEditingNotice(n)}
                       onDelete={(n) => { setSelectedNotice(n); setModalOpen(true); }}
                     />
                   ))
@@ -231,7 +238,7 @@ export default function Home() {
                 <NoticeCard
                   key={notice.id}
                   notice={notice}
-                  onEdit={(n) => router.push(`/notice/${n.id}`)}
+                  onEdit={(n) => setEditingNotice(n)}
                   onDelete={(n) => { setSelectedNotice(n); setModalOpen(true); }}
                 />
               ))}
@@ -247,6 +254,42 @@ export default function Home() {
         onConfirm={confirmDelete}
         noticeTitle={selectedNotice?.title || ''}
       />
+
+      {/* Edit modal */}
+      {editingNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-extrabold font-heading text-slate-800">Edit Notice</h2>
+                <p className="text-xs text-slate-500">Modify the fields below to update the published notice.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingNotice(null)}
+                className="text-slate-400 hover:text-slate-655 focus:outline-none"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <NoticeForm
+              actionUrl={`/api/notices/${editingNotice.id}`}
+              method="PUT"
+              submitLabel="Update Notice"
+              onSuccess={() => {
+                setEditingNotice(null);
+                setRefreshTrigger((prev) => prev + 1);
+              }}
+              defaultValues={{
+                ...editingNotice,
+                publishDate: editingNotice.publishDate ? new Date(editingNotice.publishDate).toISOString().split('T')[0] : '',
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

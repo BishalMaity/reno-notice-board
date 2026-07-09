@@ -219,12 +219,14 @@ http://localhost:3000
 - Prisma fetches notices
 - Ordered by Priority then Publish Date
 
-### Update
+### Update (Secure Inline Modal)
 
-- Load notice
-- Edit details
-- PATCH request
-- Database updated
+- Admin clicks "Edit" on a notice card
+- React state stores the notice being edited (`editingNotice`)
+- An overlay modal containing the edit form is rendered in place on the dashboard (the notice ID is never exposed in the URL)
+- PUT request is sent to `/api/notices/:id`
+- The database is updated, the modal is closed, and the board reloads dynamically
+- Direct manual navigation to `/notice/[id]` automatically redirects back to the home page `/`
 
 ### Delete
 
