@@ -35,12 +35,12 @@ export default function EditNotice() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="mb-6">
-        <h1 className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white">Edit Notice</h1>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Modify the fields below to update the published notice.</p>
+        <h1 className="text-xl font-extrabold font-heading tracking-tight text-slate-800 ">Edit Notice</h1>
+        <p className="mt-1 text-xs text-slate-500 ">Modify the fields below to update the published notice.</p>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 p-3 text-xs font-semibold text-rose-600 dark:text-rose-400">
+        <div className="mb-4 rounded-xl bg-rose-50 p-3 text-xs font-semibold text-rose-600 ">
           {error}
         </div>
       )}

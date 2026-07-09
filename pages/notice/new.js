@@ -7,8 +7,8 @@ export default function NewNotice() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="mb-6">
-        <h1 className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white">Create Notice</h1>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Publish a new college notice, event, or exam schedule.</p>
+        <h1 className="text-xl font-extrabold font-heading tracking-tight text-slate-800 ">Create Notice</h1>
+        <p className="mt-1 text-xs text-slate-500 ">Publish a new college notice, event, or exam schedule.</p>
       </div>
 
       <NoticeForm
