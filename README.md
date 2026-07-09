@@ -1,66 +1,307 @@
-# Reno Notice Board CRUD Application
+# 📌 Reno Notice Board
 
-A premium, company-grade Notice Board application featuring full Create, Read, Update, and Delete (CRUD) operations. Built strictly adhering to the requested Next.js Pages Router JavaScript stack, utilizing Prisma ORM to interact with a hosted TiDB Cloud MySQL database, styled with Tailwind CSS, and optimized for Vercel deployment.
-
----
-
-## 🛠️ Tech Stack
-- **Framework**: Next.js (Pages Router)
-- **Language**: JavaScript (ES6+)
-- **Styling**: Tailwind CSS (v4)
-- **Database ORM**: Prisma ORM
-- **Database**: TiDB Cloud (MySQL-compatible)
-- **Deployment**: Vercel
+A modern Notice Board web application built with **Next.js**, **Prisma ORM**, **TiDB Cloud**, and **Tailwind CSS**. The application allows users to create, view, update, and delete notices with server-side validation and persistent database storage.
 
 ---
 
-## 🚀 How to Run the Project Locally
+## 🚀 Features
 
-### 1. Prerequisites
-Ensure you have [Node.js](https://nodejs.org) (v18 or higher recommended) and `npm` installed.
+- Create, Read, Update and Delete (CRUD) notices
+- Delete confirmation before removing a notice
+- Search notices
+- Filter by category
+- Board View & Grid View
+- Upload notice images
+- Urgent notices displayed before Normal notices (database-level ordering)
+- Responsive user interface built with Tailwind CSS
+- Server-side validation
+- Prisma ORM with TiDB Cloud database
 
-### 2. Clone the Repository & Install Dependencies
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+- Next.js (Pages Router)
+- React
+- Tailwind CSS
+- Axios
+
+### Backend
+- Next.js API Routes
+- Prisma ORM
+
+### Database
+- TiDB Cloud (MySQL Compatible)
+
+### Tools
+- Prisma Migrate
+- ESLint
+- Git & GitHub
+
+---
+
+# Project Structure
+
+```
+reno-notice-board
+│
+├── components/
+│   ├── Layout.js
+│   ├── NoticeCard.js
+│   ├── NoticeForm.js
+│   ├── DeleteConfirmationModal.js
+│   └── Loading.js
+│
+├── pages/
+│   ├── index.js
+│   ├── notice/
+│   │     ├── new.js
+│   │     └── [id].js
+│   │
+│   └── api/
+│         ├── notices/
+│         ├── upload.js
+│         └── image.js
+│
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+│
+├── public/
+│     └── uploads/
+│
+├── styles/
+├── lib/
+├── utils/
+└── README.md
+```
+
+---
+
+# Database Schema
+
+Notice Model
+
+| Field | Type |
+|--------|------|
+| id | Int |
+| title | String |
+| body | String |
+| category | String |
+| priority | String |
+| publishDate | DateTime |
+| image | String |
+| createdAt | DateTime |
+
+---
+
+# API Endpoints
+
+| Method | Endpoint | Description |
+|----------|----------------|----------------------|
+| GET | /api/notices | Fetch all notices |
+| POST | /api/notices | Create notice |
+| PUT | /api/notices/:id | Update notice |
+| DELETE | /api/notices/:id | Delete notice |
+
+---
+
+# Validation
+
+Validation is performed **inside the API routes** before writing to the database.
+
+Checks include:
+
+- Title is required
+- Body is required
+- Category is valid
+- Priority is valid
+- Publish Date is valid
+- Empty values are rejected
+
+Appropriate HTTP status codes are returned.
+
+---
+
+# Notice Ordering
+
+Urgent notices are displayed before Normal notices using Prisma's `orderBy`.
+
+Example:
+
+```js
+orderBy: [
+  { priority: "desc" },
+  { publishDate: "desc" }
+]
+```
+
+Sorting is performed on the database side instead of the browser.
+
+---
+
+# How to Run Locally
+
+## 1. Clone Repository
+
 ```bash
 git clone <repository-url>
-cd reno-notice-board
+```
+
+---
+
+## 2. Install Dependencies
+
+```bash
 npm install
 ```
 
-### 3. Setup Environment Variables
-Create a `.env` file in the root directory of the project and define your `DATABASE_URL` connecting to your TiDB Cloud (or any MySQL-compatible) database:
+---
+
+## 3. Configure Environment Variables
+
+Create a `.env` file.
+
+Example:
+
 ```env
-DATABASE_URL="mysql://<USERNAME>:<PASSWORD>@<HOST>:<PORT>/<DATABASE>?sslaccept=strict"
+DATABASE_URL="mysql://USERNAME:PASSWORD@HOST:4000/DATABASE?sslaccept=strict"
 ```
 
-### 4. Setup the Database Schema
-Sync the Prisma schema with your database and generate the Prisma Client:
+Replace the values with your TiDB Cloud connection string.
+
+---
+
+## 4. Run Prisma Migration
+
 ```bash
-npx prisma db push
+npx prisma migrate dev
+```
+
+---
+
+## 5. Generate Prisma Client
+
+```bash
 npx prisma generate
 ```
 
-### 5. Start the Development Server
+---
+
+## 6. Start Development Server
+
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+
+Application will run on
+
+```
+http://localhost:3000
+```
 
 ---
 
-## 💡 What to Improve with More Time
+# CRUD Workflow
 
-Given more time, the key improvement would be **Direct File Upload Integration**:
-- Setting up a cloud storage provider (e.g., **Vercel Blob** or **Cloudinary**) to allow users to directly upload local images (drag-and-drop or select file) when publishing a notice, rather than typing in a raw external image URL.
-- This would involve writing an API handler to secure temporary upload signatures, saving local copies temporarily, or using a serverless upload stream to return CDN image links for high-performance content delivery.
+### Create
+
+- Fill notice form
+- POST request to API
+- Server validation
+- Prisma stores data
+- Redirect to homepage
+
+### Read
+
+- GET request
+- Prisma fetches notices
+- Ordered by Priority then Publish Date
+
+### Update
+
+- Load notice
+- Edit details
+- PATCH request
+- Database updated
+
+### Delete
+
+- Confirmation dialog
+- DELETE request
+- Notice removed from database
 
 ---
 
-## 🤖 AI Usage Description
+# Assignment Requirements Covered
 
-This project was built in active pair-programming collaboration with **Antigravity** (an AI coding assistant developed by Google DeepMind):
+✅ Create Notice
 
-- **Folder & Project Setup**: Guided the initial layout structure matching the Next.js Pages Router routing conventions.
-- **Prisma & MySQL Schema Design**: Assisted in structuring the `Notice` model with appropriate field constraints (like `@db.Text` for longer notice bodies) and generating the schema.
-- **API Implementation**: Pair-programmed the REST endpoints (`GET`, `POST`, `PUT`, `DELETE` under `pages/api/notices/`) with proper HTTP methods, status codes, server-side data validations, and database queries.
-- **Frontend Components & Pages**: Assisted with implementing responsive layouts, reusable card cards mapping category badges, a custom modal for confirmations, and integrating client-side form controls using `react-hook-form` and `axios`.
-- **UI & Aesthetic Polish**: Handled the implementation of a Tailwind CSS-driven class theme toggle, dark mode persistency, and visual card designs styled after the Reno Platform theme.
+✅ Read Notices
+
+✅ Update Notice
+
+✅ Delete Notice
+
+✅ API Routes
+
+✅ Prisma ORM
+
+✅ TiDB Cloud Database
+
+✅ Server-side Validation
+
+✅ Persistent Database Storage
+
+✅ Urgent-first Database Ordering
+
+✅ Delete Confirmation
+
+---
+
+# One Thing I Would Improve With More Time
+
+If given more time, I would extend the project with several production-ready features, including:
+
+- User authentication and authorization
+- Image upload to cloud storage (AWS S3 or Cloudinary)
+- Pagination for large numbers of notices
+- Rich text editor for notice content
+- Role-based access control so that only authorized users could create, edit, or delete  notices. 
+- Automated testing (Jest & Cypress)
+- Docker deployment
+- CI/CD pipeline using GitHub Actions
+- Improved accessibility and SEO
+- Dark mode support
+
+---
+
+# AI Usage
+
+AI was used as a **development assistant**, not as a replacement for software engineering knowledge.
+
+Specifically, AI helped with:
+
+- Generating boilerplate code
+- Explaining Prisma and Next.js concepts
+- Debugging runtime and database errors
+- Suggesting cleaner component structures
+- Improving UI layout and styling
+- Providing code refactoring suggestions
+- Reviewing validation logic
+- Writing documentation
+
+All generated code was manually reviewed, integrated, modified, and tested before being included in the project. I understood the implementation, made project-specific adjustments, and verified that the application satisfied the assignment requirements.
+
+Using AI significantly reduced repetitive coding time and allowed me to focus more on application architecture, debugging, and functionality rather than manually writing every boilerplate section.
+
+---
+
+# Author
+
+**Bishal Maity**
+
+B.Tech Computer Science & Engineering
+
+Full Stack Web Developer
